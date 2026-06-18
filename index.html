@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QuantPercent | Matriz de Probabilidade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #04060e;
+            --card: rgba(10, 15, 28, 0.9);
+            --card-inner: rgba(15, 23, 42, 0.6);
+            --border: rgba(51, 65, 85, 0.5);
+            --border-light: rgba(71, 85, 105, 0.3);
+            --fg: #e2e8f0;
+            --muted: #64748b;
+            --accent: #3b82f6;
+            --accent-dim: rgba(59, 130, 246, 0.12);
+            --green: #10b981;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+            --purple: #a855f7;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--fg);
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: -15%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(59,130,246,0.04) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            right: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(circle, rgba(168,85,247,0.03) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Sistema de Abas */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            padding: 4px;
+            position: relative;
+            border: 1px solid var(--border-light);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            border-radius: 9px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+        }
+
+        .tab-btn:not(.active):hover {
+            color: #94a3b8;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tab-content { display: none; animation: tabFade 0.35s ease; }
+        .tab-content.active { display: block; }
+
+        @keyframes tabFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Inputs */
+        .input-field {
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid var(--border);
+            color: white;
+            text-align: center;
+            font-size: 15px;
+            padding: 11px 6px;
+            border-radius: 8px;
+            outline: none;
+            width: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            transition: all 0.25s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 0 16px rgba(59, 130, 246, 0.1);
+        }
+
+        .input-field::placeholder { color: #334155; font-weight: 400; }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+        /* Grids de input */
+        .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .g1 { display: grid; grid-template-columns: 1fr; gap: 8px; }
+
+        /* Labels */
+        .lbl {
+            display: block;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .section-title {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-light);
+        }
+
+        /* Botão principal */
+        .btn-calc {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            transition: all 0.3s ease;
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: white;
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-calc::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-calc:hover::before { left: 100%; }
+        .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59, 130, 246, 0.4); }
+        .btn-calc:active { transform: translateY(0); }
+
+        /* Barras de progresso */
+        .prog-track {
+            background: rgba(30, 41, 59, 0.7);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .prog-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+            width: 0%;
+            position: relative;
+        }
+
+        .prog-bar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            animation: shimmer 2.5s infinite;
+        }
+
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* Tags de veredito */
+        .verdict {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 10px 14px;
+            border-radius: 10px;
+            line-height: 1.5;
+        }
+
+        .v-green { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.35); color: #34d399; }
+        .v-yellow { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.35); color: #fbbf24; }
+        .v-red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+
+        /* Card de resultado */
+        .result-card {
+            border-radius: 14px;
+            padding: 22px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            backdrop-filter: blur(16px);
+        }
+
+        .result-card-title {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Posição na tabela visual */
+        .pos-visual {
+            position: relative;
+            height: 8px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 4px;
+            overflow: visible;
+            margin: 16px 0 8px;
+        }
+
+        .pos-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 800;
+            z-index: 2;
+            transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .pos-marker-a {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+        }
+
+        .pos-marker-b {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+        }
+
+        .pos-label {
+            position: absolute;
+            top: 22px;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* Placar esperado */
+        .score-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .score-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .score-sep {
+            font-size: 28px;
+            color: var(--muted);
+            font-weight: 300;
+        }
+
+        /* Animações */
+        .fade-up {
+            animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Separador decorativo */
+        .sep-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 16px 0;
+        }
+
+        /* Badge de modelo */
+        .model-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        /* Input de posição grande */
+        .pos-input {
+            background: rgba(2, 6, 23, 0.8);
+            border: 2px solid var(--border);
+            color: white;
+            text-align: center;
+            font-size: 32px;
+            padding: 14px;
+            border-radius: 12px;
+            outline: none;
+            width: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            transition: all 0.25s ease;
+        }
+
+        .pos-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .pos-input-a:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .pos-input-b:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+    </style>
+</head>
+<body class="flex flex-col items-center p-4 md:p-8 relative z-10">
+
+    <!-- HEADER -->
+    <header class="w-full max-w-3xl text-center mb-6 mt-2 md:mt-4">
+        <div class="inline-flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                <i class="fa-solid fa-chart-line text-white text-sm"></i>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white">QUANT<span class="text-blue-500">%</span></h1>
+        </div>
+        <p class="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold">Matriz Preditiva de Probabilidade</p>
+    </header>
+
+    <!-- PAINEL PRINCIPAL -->
+    <main class="w-full max-w-3xl glass rounded-2xl shadow-2xl overflow-hidden">
+
+        <!-- Abas -->
+        <div class="p-4 pb-0">
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('stats')" id="tab-stats">
+                    <i class="fa-solid fa-chart-bar text-[11px]"></i>
+                    Estatísticas
+                </button>
+                <button class="tab-btn" onclick="switchTab('position')" id="tab-position">
+                    <i class="fa-solid fa-trophy text-[11px]"></i>
+                    Classificação
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 md:p-6">
+
+            <!-- ABA 1: ESTATÍSTICAS DOS TIMES -->
+            <div id="content-stats" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <!-- TIME A -->
+                    <div class="bg-[rgba(15,23,42,0.5)] p-4 rounded-xl border border-[rgba(51,65,85,0.3)]">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-[rgba(51,65,85,0.4)]">
+                            <div class="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-shield-halved text-blue-400 text-[10px]"></i>
+                            </div>
+                            <h2 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Mandante</h2>
+                        </div>
+
+                        <div class="section-title"><i class="fa-solid fa-list-ol text-[8px]"></i> Retrospecto</div>
+                        <div class="g3 mb-4">
+                            <div>
+                                <label class="lbl text-emerald-400">Vitórias</label>
+                                <input type="number" id="vA" class="input-field text-emerald-300" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="lbl text-amber-400">Empates</label>
+                                <input type="number" id="eA" class="input-field text-amber-300" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="lbl text-red-400">Derrotas</label>
+                                <input type="number" id="dA" class="input-field text-red-300" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="section-title"><i class="fa-solid fa-futbol text-[8px]"></i> Média de Gols</div>
+                        <div class="g2 mb-4">
+                            <div>
+                                <label class="lbl text-sky-300">Pró</label>
+                                <input type="number" id="gpA" step="0.01" class="input-field text-sky-200" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="lbl text-sky-300">Contra</label>
+                                <input type="number" id="gcA" step="0.01" class="input-field text-sky-200" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="section-title"><i class="fa-solid fa-lock text-[8px]"></i> Defesa</div>
+                        <div class="g1">
+                            <div>
+                                <label class="lbl text-purple-400">Clean Sheets</label>
+                                <input type="number" id="csA" class="input-field text-purple-300" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIME B -->
+                    <div class="bg-[rgba(15,23,42,0.5)] p-4 rounded-xl border border-[rgba(51,65,85,0.3)]">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-[rgba(51,65,85,0.4)]">
+                            <div class="w-6 h-6 rounded-md bg-red-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-plane-departure text-red-400 text-[10px]"></i>
+                            </div>
+                            <h2 class="text-xs font-bold text-red-400 uppercase tracking-wider">Visitante</h2>
+                        </div>
+
+                        <div class="section-title"><i class="fa-solid fa-list-ol text-[8px]"></i> Retrospecto</div>
+                        <div class="g3 mb-4">
+                            <div>
+                                <label class="lbl text-emerald-400">Vitórias</label>
+                                <input type="number" id="vB" class="input-field text-emerald-300" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="lbl text-amber-400">Empates</label>
+                                <input type="number" id="eB" class="input-field text-amber-300" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="lbl text-red-400">Derrotas</label>
+                                <input type="number" id="dB" class="input-field text-red-300" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="section-title"><i class="fa-solid fa-futbol text-[8px]"></i> Média de Gols</div>
+                        <div class="g2 mb-4">
+                            <div>
+                                <label class="lbl text-rose-300">Pró</label>
+                                <input type="number" id="gpB" step="0.01" class="input-field text-rose-200" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="lbl text-rose-300">Contra</label>
+                                <input type="number" id="gcB" step="0.01" class="input-field text-rose-200" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="section-title"><i class="fa-solid fa-lock text-[8px]"></i> Defesa</div>
+                        <div class="g1">
+                            <div>
+                                <label class="lbl text-purple-400">Clean Sheets</label>
+                                <input type="number" id="csB" class="input-field text-purple-300" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ABA 2: CLASSIFICAÇÃO -->
+            <div id="content-position" class="tab-content">
+                <div class="bg-[rgba(15,23,42,0.4)] p-5 rounded-xl border border-[rgba(51,65,85,0.3)] mb-4">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-circle-info text-blue-400 text-xs"></i>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">
+                            A posição na tabela adiciona um <span class="text-blue-400 font-semibold">fator contextual</span> ao modelo,
+                            ajustando as probabilidades com base na força real de cada time no campeonato.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Posição Time A -->
+                    <div class="bg-[rgba(15,23,42,0.5)] p-5 rounded-xl border border-blue-500/20 text-center">
+                        <div class="flex items-center justify-center gap-2 mb-4">
+                            <div class="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-shield-halved text-blue-400 text-[10px]"></i>
+                            </div>
+                            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Mandante</span>
+                        </div>
+                        <label class="lbl text-slate-500 mb-2" style="font-size:10px">Posição na tabela</label>
+                        <input type="number" id="posA" class="pos-input pos-input-a text-blue-300" placeholder="—" min="1" max="30" oninput="updatePosVisual()">
+                        <p class="text-[9px] text-slate-600 mt-2">1º lugar = mais forte</p>
+                    </div>
+
+                    <!-- Posição Time B -->
+                    <div class="bg-[rgba(15,23,42,0.5)] p-5 rounded-xl border border-red-500/20 text-center">
+                        <div class="flex items-center justify-center gap-2 mb-4">
+                            <div class="w-6 h-6 rounded-md bg-red-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-plane-departure text-red-400 text-[10px]"></i>
+                            </div>
+                            <span class="text-xs font-bold text-red-400 uppercase tracking-wider">Visitante</span>
+                        </div>
+                        <label class="lbl text-slate-500 mb-2" style="font-size:10px">Posição na tabela</label>
+                        <input type="number" id="posB" class="pos-input pos-input-b text-red-300" placeholder="—" min="1" max="30" oninput="updatePosVisual()">
+                        <p class="text-[9px] text-slate-600 mt-2">Último lugar = mais fraco</p>
+                    </div>
+                </div>
+
+                <!-- Total de times -->
+                <div class="max-w-xs mx-auto mb-4">
+                    <label class="lbl text-slate-500" style="font-size:10px">Total de times no campeonato</label>
+                    <input type="number" id="totalTeams" class="input-field text-slate-300" value="20" min="4" max="40">
+                </div>
+
+                <!-- Visualização da posição -->
+                <div class="bg-[rgba(15,23,42,0.4)] p-4 rounded-xl border border-[rgba(51,65,85,0.3)]">
+                    <div class="flex justify-between text-[9px] text-slate-600 font-bold uppercase tracking-wider mb-1">
+                        <span>1º (Líder)</span>
+                        <span id="pos-last-label">20º (Último)</span>
+                    </div>
+                    <div class="pos-visual" id="pos-visual">
+                        <div class="pos-marker pos-marker-a" id="marker-a" style="left: 50%; display:none;">
+                            <span id="marker-a-num">A</span>
+                        </div>
+                        <div class="pos-marker pos-marker-b" id="marker-b" style="left: 50%; display:none;">
+                            <span id="marker-b-num">B</span>
+                        </div>
+                        <div class="pos-label text-blue-400" id="label-a" style="left: 50%; display:none;">Mandante</div>
+                        <div class="pos-label text-red-400" id="label-b" style="left: 50%; display:none;">Visitante</div>
+                    </div>
+                    <div id="pos-gap-info" class="text-center text-[10px] text-slate-500 mt-6 font-semibold" style="min-height:16px;"></div>
+                </div>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="mt-6">
+                <button onclick="calcularAlgoritmo()" class="btn-calc">
+                    <i class="fa-solid fa-microchip"></i>
+                    Processar Matriz
+                </button>
+                <button onclick="limpar()" class="w-full mt-3 bg-transparent text-slate-600 hover:text-slate-300 py-3 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer border-none">
+                    <i class="fa-solid fa-eraser"></i> Limpar Tudo
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- RESULTADOS -->
+    <section id="result-panel" class="w-full max-w-3xl mt-6 hidden pb-16">
+
+        <!-- Cabeçalho dos resultados -->
+        <div class="flex items-center justify-center gap-3 mb-5">
+            <div class="h-px flex-1 bg-gradient-to-r from-transparent to-slate-700"></div>
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-blue-500 text-xs"></i>
+                <span class="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Relatório de Operações</span>
+            </div>
+            <div class="h-px flex-1 bg-gradient-to-l from-transparent to-slate-700"></div>
+        </div>
+
+        <!-- Badge do modelo -->
+        <div class="text-center mb-5">
+            <span id="model-badge" class="model-badge">
+                <i class="fa-solid fa-cube"></i>
+                <span id="model-badge-text">Modelo Estatístico</span>
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- PLACAR ESPERADO -->
+            <div class="result-card border-t-2 border-t-sky-500 fade-up" style="animation-delay:0.05s">
+                <div class="result-card-title text-sky-400">
+                    <i class="fa-solid fa-crosshairs"></i> Placar Esperado
+                </div>
+                <div class="score-display">
+                    <div class="text-center">
+                        <div class="text-[9px] text-blue-400 font-bold uppercase tracking-wider mb-1">Mandante</div>
+                        <div id="scoreA" class="score-num text-blue-400">0.0</div>
+                    </div>
+                    <div class="score-sep">&times;</div>
+                    <div class="text-center">
+                        <div class="text-[9px] text-red-400 font-bold uppercase tracking-wider mb-1">Visitante</div>
+                        <div id="scoreB" class="score-num text-red-400">0.0</div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <span class="text-[9px] text-slate-600 uppercase tracking-wider">Total esperado: </span>
+                    <span id="totalGoals" class="mono text-slate-400 text-xs font-bold">0.0</span>
+                </div>
+            </div>
+
+            <!-- MERCADO BTTS -->
+            <div class="result-card border-t-2 border-t-purple-500 fade-up" style="animation-delay:0.1s">
+                <div class="result-card-title text-purple-400">
+                    <i class="fa-solid fa-handshake"></i> Ambas Marcam (BTTS)
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">BTTS: Sim</span>
+                        <span id="pct-btts" class="mono text-purple-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-btts" class="prog-bar bg-purple-500"></div></div>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">BTTS: Não</span>
+                        <span id="pct-btts-n" class="mono text-slate-500">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-btts-n" class="prog-bar bg-slate-600"></div></div>
+                </div>
+                <div id="verdict-btts" class="verdict v-red" style="font-size:9px;">Aguardando dados</div>
+            </div>
+
+            <!-- MERCADO DE GOLS -->
+            <div class="result-card border-t-2 border-t-emerald-500 fade-up" style="animation-delay:0.15s">
+                <div class="result-card-title text-emerald-400">
+                    <i class="fa-solid fa-futbol"></i> Mercado de Gols
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">Over 1.5</span>
+                        <span id="pct-o15" class="mono text-emerald-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-o15" class="prog-bar bg-emerald-500"></div></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">Over 2.5</span>
+                        <span id="pct-o25" class="mono text-emerald-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-o25" class="prog-bar bg-emerald-500"></div></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">Under 2.5</span>
+                        <span id="pct-u25" class="mono text-amber-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-u25" class="prog-bar bg-amber-500"></div></div>
+                </div>
+
+                <div id="verdict-gols" class="verdict v-red" style="font-size:9px;">Aguardando dados</div>
+            </div>
+
+            <!-- MATCH ODDS (1X2) -->
+            <div class="result-card border-t-2 border-t-blue-500 fade-up" style="animation-delay:0.2s">
+                <div class="result-card-title text-blue-400">
+                    <i class="fa-solid fa-scale-balanced"></i> Vitória (1X2)
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">Mandante</span>
+                        <span id="pct-vA" class="mono text-blue-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-vA" class="prog-bar bg-blue-500"></div></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">Empate</span>
+                        <span id="pct-emp" class="mono text-slate-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-emp" class="prog-bar bg-slate-500"></div></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span class="text-slate-300">Visitante</span>
+                        <span id="pct-vB" class="mono text-red-400">0%</span>
+                    </div>
+                    <div class="prog-track"><div id="bar-vB" class="prog-bar bg-red-500"></div></div>
+                </div>
+
+                <div id="verdict-1x2" class="verdict v-red" style="font-size:9px;">Aguardando dados</div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        /* ============================================
+           SISTEMA DE ABAS
+        ============================================ */
+        function switchTab(tab) {
+            // Desativar todas as abas
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // Ativar a aba selecionada
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('content-' + tab).classList.add('active');
+        }
+
+        /* ============================================
+           VISUALIZAÇÃO DA POSIÇÃO NA TABELA
+        ============================================ */
+        function updatePosVisual() {
+            const posA = parseInt(document.getElementById('posA').value) || 0;
+            const posB = parseInt(document.getElementById('posB').value) || 0;
+            const total = parseInt(document.getElementById('totalTeams').value) || 20;
+
+            // Atualizar label do último lugar
+            document.getElementById('pos-last-label').textContent = total + 'º (Último)';
+
+            const markerA = document.getElementById('marker-a');
+            const markerB = document.getElementById('marker-b');
+            const labelA = document.getElementById('label-a');
+            const labelB = document.getElementById('label-b');
+            const gapInfo = document.getElementById('pos-gap-info');
+
+            if (posA > 0 && posA <= total) {
+                const pctA = ((posA - 1) / (total - 1)) * 100;
+                markerA.style.left = pctA + '%';
+                markerA.style.display = 'flex';
+                labelA.style.left = pctA + '%';
+                labelA.style.display = 'block';
+                document.getElementById('marker-a-num').textContent = posA + 'º';
+            } else {
+                markerA.style.display = 'none';
+                labelA.style.display = 'none';
+            }
+
+            if (posB > 0 && posB <= total) {
+                const pctB = ((posB - 1) / (total - 1)) * 100;
+                markerB.style.left = pctB + '%';
+                markerB.style.display = 'flex';
+                labelB.style.left = pctB + '%';
+                labelB.style.display = 'block';
+                document.getElementById('marker-b-num').textContent = posB + 'º';
+            } else {
+                markerB.style.display = 'none';
+                labelB.style.display = 'none';
+            }
+
+            // Informação sobre o gap
+            if (posA > 0 && posB > 0 && posA <= total && posB <= total) {
+                const diff = Math.abs(posA - posB);
+                if (diff === 0) {
+                    gapInfo.innerHTML = '<span class="text-slate-500">Mesma posição na tabela</span>';
+                } else {
+                    const better = posA < posB ? 'Mandante' : 'Visitante';
+                    const color = posA < posB ? 'text-blue-400' : 'text-red-400';
+                    gapInfo.innerHTML = `<span class="${color}">${better} está ${diff} posição(ões) à frente</span>`;
+                }
+            } else {
+                gapInfo.innerHTML = '';
+            }
+        }
+
+        /* ============================================
+           ALGORITMO PRINCIPAL
+        ============================================ */
+        function calcularAlgoritmo() {
+            // Captura de dados (trata vírgula como ponto decimal)
+            const getVal = (id) => parseFloat(document.getElementById(id).value.replace(',', '.')) || 0;
+
+            const A = { v: getVal('vA'), e: getVal('eA'), d: getVal('dA'), gp: getVal('gpA'), gc: getVal('gcA'), cs: getVal('csA') };
+            const B = { v: getVal('vB'), e: getVal('eB'), d: getVal('dB'), gp: getVal('gpB'), gc: getVal('gcB'), cs: getVal('csB') };
+
+            const jogosA = A.v + A.e + A.d;
+            const jogosB = B.v + B.e + B.d;
+
+            // Validação
+            if (jogosA === 0 || jogosB === 0) {
+                showToast('Preencha o retrospecto (V/E/D) de ambos os times.');
+                return;
+            }
+
+            // Dados de posição
+            const posA = parseInt(document.getElementById('posA').value) || 0;
+            const posB = parseInt(document.getElementById('posB').value) || 0;
+            const totalTeams = Math.max(4, parseInt(document.getElementById('totalTeams').value) || 20);
+            const hasPosition = posA > 0 && posB > 0 && posA <= totalTeams && posB <= totalTeams;
+
+            // Atualizar badge do modelo
+            const badgeText = document.getElementById('model-badge-text');
+            if (hasPosition) {
+                badgeText.textContent = 'Modelo Estatístico + Contexto de Tabela';
+            } else {
+                badgeText.textContent = 'Modelo Estatístico';
+            }
+
+            /* ------------------------------------------
+               1. MATCH ODDS (1X2)
+            ------------------------------------------ */
+            let probVitA = (((A.v / jogosA) * 100) + ((B.d / jogosB) * 100)) / 2;
+            let probVitB = (((B.v / jogosB) * 100) + ((A.d / jogosA) * 100)) / 2;
+            let probEmpate = (((A.e / jogosA) * 100) + ((B.e / jogosB) * 100)) / 2;
+
+            // Fator de posição (se disponível)
+            if (hasPosition) {
+                // Normaliza posição: 1º = 1.0, último = 0.0
+                const normA = 1 - ((posA - 1) / Math.max(1, totalTeams - 1));
+                const normB = 1 - ((posB - 1) / Math.max(1, totalTeams - 1));
+
+                // Fator multiplicativo: de 0.88 a 1.12 (±12% de ajuste)
+                const fatorA = 0.88 + (normA * 0.24);
+                const fatorB = 0.88 + (normB * 0.24);
+
+                probVitA *= fatorA;
+                probVitB *= fatorB;
+            }
+
+            // Normalização para soma = 100%
+            let somaProbs = probVitA + probVitB + probEmpate;
+            probVitA = (probVitA / somaProbs) * 100;
+            probVitB = (probVitB / somaProbs) * 100;
+            probEmpate = (probEmpate / somaProbs) * 100;
+
+            /* ------------------------------------------
+               2. EXPECTATIVA DE GOLS
+            ------------------------------------------ */
+            let expGolsA = (A.gp + B.gc) / 2;
+            let expGolsB = (B.gp + A.gc) / 2;
+
+            // Ajuste por posição
+            if (hasPosition) {
+                const normA = 1 - ((posA - 1) / Math.max(1, totalTeams - 1));
+                const normB = 1 - ((posB - 1) / Math.max(1, totalTeams - 1));
+                expGolsA *= (0.92 + normA * 0.16);
+                expGolsB *= (0.92 + normB * 0.16);
+            }
+
+            const totalGolsExp = expGolsA + expGolsB;
+
+            /* ------------------------------------------
+               3. MERCADO DE GOLS (OVER/UNDER)
+            ------------------------------------------ */
+            let over15 = 50 + ((totalGolsExp - 1.5) * 28);
+            let over25 = 40 + ((totalGolsExp - 2.5) * 25);
+
+            over15 = Math.max(10, Math.min(96, over15));
+            over25 = Math.max(5, Math.min(88, over25));
+            let under25 = 100 - over25;
+
+            /* ------------------------------------------
+               4. BTTS (AMBAS MARCAM)
+            ------------------------------------------ */
+            const csPercA = Math.min(1, A.cs / jogosA);
+            const csPercB = Math.min(1, B.cs / jogosB);
+            const sofreuA = 1 - csPercA;
+            const sofreuB = 1 - csPercB;
+
+            let chanceAMarca = Math.min(1, Math.max(0, (A.gp / 1.5) * sofreuB));
+            let chanceBMarca = Math.min(1, Math.max(0, (B.gp / 1.5) * sofreuA));
+
+            let bttsProb = (chanceAMarca * chanceBMarca) * 100 * 1.2;
+            bttsProb = Math.max(10, Math.min(85, bttsProb));
+            let bttsNao = 100 - bttsProb;
+
+            /* ------------------------------------------
+               5. VEREDITOS
+            ------------------------------------------ */
+            setVerdict('verdict-gols', () => {
+                if (over15 >= 75 && over25 >= 55) return ['v-green', 'ALTA CONFIANCA: Entrar no Over de Gols'];
+                if (under25 >= 65) return ['v-green', 'ALTA CONFIANCA: Entrar no Under 2.5'];
+                if (over25 >= 50 && over15 >= 70) return ['v-yellow', 'CONFIANCA MEDIA: Over 2.5 com risco'];
+                return ['v-red', 'NAO ENTRAR: Mercado indefinido'];
+            });
+
+            setVerdict('verdict-btts', () => {
+                if (bttsProb >= 65) return ['v-green', 'ALTA CONFIANCA: Entrar BTTS Sim'];
+                if (bttsProb <= 38) return ['v-yellow', 'TENDENCIA: BTTS Nao (risco medio)'];
+                return ['v-red', 'NAO ENTRAR: Mercado indefinido'];
+            });
+
+            setVerdict('verdict-1x2', () => {
+                if (probVitA >= 55) return ['v-green', 'CONFIANCA: Vitoria Mandante (ou DNB)'];
+                if (probVitB >= 55) return ['v-green', 'CONFIANCA: Vitoria Visitante (ou X2)'];
+                if (probVitA >= 48) return ['v-yellow', 'CONFIANCA MEDIA: Mandante favorito leve'];
+                if (probVitB >= 48) return ['v-yellow', 'CONFIANCA MEDIA: Visitante favorito leve'];
+                return ['v-red', 'NAO ENTRAR: Jogo equilibrado'];
+            });
+
+            /* ------------------------------------------
+               6. RENDERIZAR RESULTADOS
+            ------------------------------------------ */
+            const panel = document.getElementById('result-panel');
+            panel.classList.remove('hidden');
+
+            // Reiniciar animações
+            panel.querySelectorAll('.fade-up').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight; // forçar reflow
+                el.style.animation = '';
+            });
+
+            setTimeout(() => {
+                anim('pct-o15', 'bar-o15', over15);
+                anim('pct-o25', 'bar-o25', over25);
+                anim('pct-u25', 'bar-u25', under25);
+                anim('pct-btts', 'bar-btts', bttsProb);
+                anim('pct-btts-n', 'bar-btts-n', bttsNao);
+                anim('pct-vA', 'bar-vA', probVitA);
+                anim('pct-emp', 'bar-emp', probEmpate);
+                anim('pct-vB', 'bar-vB', probVitB);
+
+                // Placar esperado
+                document.getElementById('scoreA').textContent = expGolsA.toFixed(1);
+                document.getElementById('scoreB').textContent = expGolsB.toFixed(1);
+                document.getElementById('totalGoals').textContent = totalGolsExp.toFixed(1) + ' gols';
+
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 60);
+        }
+
+        /* Funções auxiliares */
+        function anim(idPct, idBar, value) {
+            document.getElementById(idPct).innerText = value.toFixed(1) + '%';
+            document.getElementById(idBar).style.width = value + '%';
+        }
+
+        function setVerdict(id, fn) {
+            const el = document.getElementById(id);
+            const [cls, text] = fn();
+            el.className = 'verdict ' + cls;
+            el.textContent = text;
+        }
+
+        function limpar() {
+            document.querySelectorAll('input[type="number"]').forEach(i => { i.value = ''; });
+            document.getElementById('totalTeams').value = '20';
+            document.getElementById('result-panel').classList.add('hidden');
+            updatePosVisual();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /* Toast de notificação */
+        function showToast(msg) {
+            const existing = document.querySelector('.toast-msg');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.style.cssText = `
+                position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4);
+                color: #fca5a5; padding: 12px 24px; border-radius: 10px; font-size: 12px;
+                font-weight: 600; z-index: 9999; backdrop-filter: blur(12px);
+                font-family: 'Space Grotesk', sans-serif; animation: fadeUp 0.3s ease;
+            `;
+            toast.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="margin-right:8px"></i>' + msg;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Atualizar visualização ao mudar total de times
+        document.getElementById('totalTeams').addEventListener('input', updatePosVisual);
+    </script>
+</body>
+</html>
